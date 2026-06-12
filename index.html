@@ -27,9 +27,8 @@
             width: 360px;
             box-sizing: border-box;
         }
-        h2 { margin-top: 0; margin-bottom: 30px; letter-spacing: 1px; }
+        h2 { margin-top: 0; margin-bottom: 20px; letter-spacing: 1px; }
         
-        /* Butonları Yan Yana Kusursuz Hizalamak İçin Özel Satır */
         .btn-satir {
             display: flex;
             justify-content: space-between;
@@ -52,17 +51,31 @@
         }
         .btn:active { transform: scale(0.95); }
         
-        /* Buton Renkleri */
         .btn-ac { background-color: #444; }
         .btn-kapat { background-color: #444; }
         
-        /* Yangın ve Sustur Butonları Tam Genişlikte */
-        .btn-yangin { background-color: #e74c3c; width: 100%; height: 60px; margin-top: 20px; font-size: 18px; }
+        .btn-yangin { background-color: #e74c3c; width: 100%; height: 60px; margin-top: 15px; font-size: 18px; }
         .btn-sondu { background-color: #3498db; width: 100%; height: 50px; margin-top: 10px; }
 
-        /* Dinamik Renk Sınıfları (Siri veya Panelden açıldığında yanacak) */
+        /* YENİ: Sesli Komut Butonu Tasarımı */
+        .btn-sesli { 
+            background-color: #f39c12; 
+            width: 100%; 
+            height: 60px; 
+            margin-bottom: 20px; 
+            font-size: 18px; 
+            border-radius: 50px;
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        /* Dinamik Renk Sınıfları */
         .aktif-yesil { background-color: #2ecc71 !important; box-shadow: 0 0 15px #2ecc71; }
         .alarm-kirmizi { background-color: #8b0000 !important; }
+        .dinliyor { background-color: #e67e22 !important; animation: none; transform: scale(0.98); }
+
+        /* Komut Sonucu Gösterme Yeri */
+        #sesSonuc { margin-bottom: 20px; font-size: 14px; color: #aaa; min-height: 20px; }
     </style>
 </head>
 <body>
@@ -70,7 +83,8 @@
     <div class="panel-container">
         <h2>🏠 Akıllı Ev Yönetimi</h2>
         
-        <div class="btn-satir">
+        <button class="btn btn-sesli" id="btnMikrofon" onclick="sesDinle()">🎤 Sesli Komut Ver</button>
+        <div id="sesSonuc"></div> <div class="btn-satir">
             <button class="btn btn-ac" id="btnSalonAc" onclick="komutYolla('SALON_AC')">Salonu Aç</button>
             <button class="btn btn-kapat" onclick="komutYolla('SALON_KAPAT')">Salonu Kapat</button>
         </div>
@@ -85,13 +99,10 @@
     </div>
 
     <script>
-        // Senin Adafruit Bilgilerin
-        // Senin Adafruit Bilgilerin
         const KULLANICI_ADI = "Blecenreyy";
-        const GIZLI_SIFRE = "aio_" + "vpoq027dtrSa64FzRSNZPzFOHjVQ";
+        const GIZLI_SIFRE = "aio_" + "vpoq027dtrSa64FzRSNZPzFOHjVQ"; 
         const ODA_ADI = "isik-kontrol";
 
-        // Butona basıldığında Adafruit'e mesaj yollayan komut
         function komutYolla(komut) {
             fetch(`https://io.adafruit.com/api/v2/${KULLANICI_ADI}/feeds/${ODA_ADI}/data`, {
                 method: 'POST',
@@ -100,10 +111,9 @@
                     'X-AIO-Key': GIZLI_SIFRE
                 },
                 body: JSON.stringify({ value: komut })
-            }).then(response => console.log("Giden: " + komut));
+            });
         }
 
-        // Siri veya başka yerden gelen komutları 2 saniyede bir kontrol eden "Kulak"
         function durumuDinle() {
             fetch(`https://io.adafruit.com/api/v2/${KULLANICI_ADI}/feeds/${ODA_ADI}/data/last`, {
                 method: 'GET',
@@ -114,13 +124,9 @@
                 let sonKomut = data.value;
                 let arkaPlan = document.body;
 
-                // Salon Butonu Rengi (Açıksa yeşil parlar)
                 document.getElementById('btnSalonAc').className = (sonKomut === 'SALON_AC') ? 'btn btn-ac aktif-yesil' : 'btn btn-ac';
-                
-                // Oda Butonu Rengi (Açıksa yeşil parlar)
                 document.getElementById('btnOdaAc').className = (sonKomut === 'ODA_AC') ? 'btn btn-ac aktif-yesil' : 'btn btn-ac';
 
-                // Yangın Şovu (Ekran Kırmızıya Döner)
                 if(sonKomut === 'YANGIN') {
                     arkaPlan.className = 'alarm-kirmizi';
                 } else {
@@ -129,9 +135,69 @@
             });
         }
 
-        // Sistemi 2 saniyede bir Adafruit'e bakması için döngüye sokuyoruz
         setInterval(durumuDinle, 2000);
-        durumuDinle(); // Sayfa açılır açılmaz ilk kontrolü yap
+        durumuDinle();
+
+        // ==========================================
+        // YENİ BÖLÜM: BROWSER İÇİ YAPAY ZEKA DİNLEME
+        // ==========================================
+        const SesTanima = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (SesTanima) {
+            const tanima = new SesTanima();
+            tanima.lang = 'tr-TR'; // Türkçe dinle
+
+            function sesDinle() {
+                tanima.start(); // Dinlemeyi başlat
+                document.getElementById('btnMikrofon').innerText = "🎙️ Sizi Dinliyorum...";
+                document.getElementById('btnMikrofon').className = "btn btn-sesli dinliyor";
+                document.getElementById('sesSonuc').innerText = "Konuşun...";
+            }
+
+            tanima.onresult = function(event) {
+                // Söylenen kelimeyi al ve küçük harfe çevir
+                const soylenen = event.results[0][0].transcript.toLowerCase();
+                document.getElementById('sesSonuc').innerText = `Anlaşılan: "${soylenen}"`;
+                
+                // Kelime analizi yapıp komutu gönder
+                if (soylenen.includes("salon") && (soylenen.includes("aç") || soylenen.includes("yak"))) {
+                    komutYolla('SALON_AC');
+                } 
+                else if (soylenen.includes("salon") && soylenen.includes("kapat")) {
+                    komutYolla('SALON_KAPAT');
+                }
+                else if (soylenen.includes("oda") && (soylenen.includes("aç") || soylenen.includes("yak"))) {
+                    komutYolla('ODA_AC');
+                }
+                else if (soylenen.includes("oda") && soylenen.includes("kapat")) {
+                    komutYolla('ODA_KAPAT');
+                }
+                else if (soylenen.includes("yangın")) {
+                    komutYolla('YANGIN');
+                }
+                else if (soylenen.includes("söndü") || soylenen.includes("sustur") || soylenen.includes("kapat")) {
+                    // Yangın modunu susturmak için
+                    komutYolla('SONDU');
+                }
+                else {
+                    document.getElementById('sesSonuc').innerText = `Komut anlaşılamadı: "${soylenen}"`;
+                }
+
+                // Butonu eski haline getir
+                document.getElementById('btnMikrofon').innerText = "🎤 Sesli Komut Ver";
+                document.getElementById('btnMikrofon').className = "btn btn-sesli";
+            };
+
+            tanima.onerror = function() {
+                document.getElementById('sesSonuc').innerText = "Mikrofon hatası veya ses anlaşılamadı.";
+                document.getElementById('btnMikrofon').innerText = "🎤 Sesli Komut Ver";
+                document.getElementById('btnMikrofon').className = "btn btn-sesli";
+            };
+        } else {
+            // Safari'nin çok eski sürümleri gibi desteklenmeyen tarayıcılar için
+            document.getElementById('btnMikrofon').style.display = "none";
+            document.getElementById('sesSonuc').innerText = "Tarayıcınız sesli komut desteklemiyor.";
+        }
     </script>
 </body>
 </html>
